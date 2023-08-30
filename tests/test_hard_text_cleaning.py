@@ -29,7 +29,12 @@ def test_hard_text_cleaning():
     text1 = "JJ棋牌数据4.3万。数据链接http://www.jj.cn/，数据第一个账号，第二个密码，95%可登录，可以登录官网查看数据是否准确"
     text2 = ht.clean_text(text1)
     assert text2 == "JJ棋牌数据4.3万。数据链接，数据第一个账号，第二个密码，95%可登录，可以登录官网查看数据是否准确"
-    
+    # 复杂网页清洗
+    text1 = "发布了头条文章：《【XT】每日开工链新事儿 06.30 星期二》  [http://t.cn/A6LsKirA#区块链[超话]#](http://t.cn/A6LsKirA#%E5%8C%BA%E5%9D%97%E9%93%BE[%E8%B6%85%E8%AF%9D]#) #数字货币[超话]# #买价值币，只选XT# #比特币[超话]# #XT每日开工链新事儿? 06.30# #腾讯回应起诉老干妈#"
+    text2 = ht.clean_text(text1, weibo_topic=True)
+    print("清洗前：", [text1])
+    print("清洗后：", [text2])
+    assert text2 == "发布了头条文章：《【XT】每日开工链新事儿 06.30 星期二》"
 
 if __name__ == "__main__":
     test_hard_text_cleaning()

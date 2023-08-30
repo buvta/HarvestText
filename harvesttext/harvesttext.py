@@ -727,7 +727,7 @@ class HarvestText(EntNetworkMixin, EntRetrieveMixin, ParsingMixin, SentimentMixi
             return sentences
 
     def clean_text(self, text, remove_url=True, email=True, weibo_at=True, stop_terms=("转发微博",),
-                   emoji=True, weibo_topic=False, deduplicate_space=True,
+                   emoji=True, weibo_topic=False, markdown_hyperlink=True, deduplicate_space=True,
                    norm_url=False, norm_html=False, to_url=False,
                    remove_puncts=False, remove_tags=True, t2s=False,
                    expression_len=(1,6), linesep2space=False):
@@ -741,6 +741,7 @@ class HarvestText(EntNetworkMixin, EntRetrieveMixin, ParsingMixin, SentimentMixi
         :param stop_terms: 去除文本中的一些特定词语，默认参数为("转发微博",)
         :param emoji: （默认使用）去除\[\]包围的文本，一般是表情符号
         :param weibo_topic: （默认不使用）去除##包围的文本，一般是微博话题
+        :param markdown_hyperlink: （默认使用）将类似markdown超链接的格式 "[文本内容](链接)" 清洗为只剩下"文本内容"
         :param deduplicate_space: （默认使用）合并文本中间的多个空格为一个
         :param norm_url: （默认不使用）还原URL中的特殊字符为普通格式，如(%20转为空格)
         :param norm_html: （默认不使用）还原HTML中的特殊字符为普通格式，如(\&nbsp;转为空格)
@@ -766,6 +767,30 @@ class HarvestText(EntNetworkMixin, EntRetrieveMixin, ParsingMixin, SentimentMixi
             text = urllib.parse.quote(text)
         if remove_tags:
             text = w3lib.html.remove_tags(text)
+        if markdown_hyperlink:
+            text = re.sub(r"\[(.+?)\]\(\S+\)", r"\1", text)
+        if weibo_topic:
+            text = re.sub(r"#.+#", "", text)  # 去除话题内容（中间可能有空格）
+        if emoji:
+            # 去除括号包围的表情符号
+            # ? lazy match避免把两个表情中间的部分去除掉
+            if type(expression_len) in {tuple, list} and len(expression_len) == 2:
+                # 设置长度范围避免误伤人用的中括号内容，如[加上特别番外荞麦花开时共五册]
+                lb, rb = expression_len
+                text = re.sub(r"\[\S{"+str(lb)+r","+str(rb)+r"}?\]", "", text)  
+            else:
+                text = re.sub(r"\[\S+?\]", "", text)
+            # text = re.sub(r"\[\S+\]", "", text)
+            # 去除真,图标式emoji
+            emoji_pattern = re.compile("["
+                           u"\U0001F600-\U0001F64F"  # emoticons
+                           u"\U0001F300-\U0001F5FF"  # symbols & pictographs
+                           u"\U0001F680-\U0001F6FF"  # transport & map symbols
+                           u"\U0001F1E0-\U0001F1FF"  # flags (iOS)
+                           u"\U00002702-\U000027B0"
+                           "]+", flags=re.UNICODE)
+            text = emoji_pattern.sub(r'', text)
+        
         if remove_url:
             try:
                 URL_REGEX = re.compile(
@@ -786,27 +811,7 @@ class HarvestText(EntNetworkMixin, EntRetrieveMixin, ParsingMixin, SentimentMixi
             text = re.sub(EMAIL_REGEX, "", text)
         if weibo_at:
             text = re.sub(r"(回复)?(//)?\s*@\S*?\s*(:|：| |$)", " ", text)  # 去除正文中的@和回复/转发中的用户名
-        if emoji:
-            # 去除括号包围的表情符号
-            # ? lazy match避免把两个表情中间的部分去除掉
-            if type(expression_len) in {tuple, list} and len(expression_len) == 2:
-                # 设置长度范围避免误伤人用的中括号内容，如[加上特别番外荞麦花开时共五册]
-                lb, rb = expression_len
-                text = re.sub(r"\[\S{"+str(lb)+r","+str(rb)+r"}?\]", "", text)  
-            else:
-                text = re.sub(r"\[\S+?\]", "", text)
-            # text = re.sub(r"\[\S+\]", "", text)
-            # 去除真,图标式emoji
-            emoji_pattern = re.compile("["
-                           u"\U0001F600-\U0001F64F"  # emoticons
-                           u"\U0001F300-\U0001F5FF"  # symbols & pictographs
-                           u"\U0001F680-\U0001F6FF"  # transport & map symbols
-                           u"\U0001F1E0-\U0001F1FF"  # flags (iOS)
-                           u"\U00002702-\U000027B0"
-                           "]+", flags=re.UNICODE)
-            text = emoji_pattern.sub(r'', text)
-        if weibo_topic:
-            text = re.sub(r"#\S+#", "", text)  # 去除话题内容
+        
         if linesep2space:
             text = text.replace("\n", " ")   # 不需要换行的时候变成1行
         if deduplicate_space:
