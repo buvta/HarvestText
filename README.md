@@ -903,7 +903,7 @@ we imagine what we'll find, in another life.
 ```
 @misc{zhangHarvestText,
 	author = {Zhiling Zhang},
-	title = {HarvestText : A Toolkit for Text Mining and Preprocessing},
+	title = {HarvestText: A Toolkit for Text Mining and Preprocessing},
 	journal = {GitHub repository},
 	howpublished = {\url{https://github.com/blmoistawinde/HarvestText}},
 	year = {2023}
