@@ -730,7 +730,7 @@ class HarvestText(EntNetworkMixin, EntRetrieveMixin, ParsingMixin, SentimentMixi
                    emoji=True, weibo_topic=False, markdown_hyperlink=True, deduplicate_space=True,
                    norm_url=False, norm_html=False, to_url=False,
                    remove_puncts=False, remove_tags=True, t2s=False,
-                   expression_len=(1,6), linesep2space=False):
+                   expression_len=(1,6), linesep2space=False, custom_regex=None):
         '''
         进行各种文本清洗操作，微博中的特殊格式，网址，email，html代码，等等
 
@@ -751,6 +751,7 @@ class HarvestText(EntNetworkMixin, EntRetrieveMixin, ParsingMixin, SentimentMixi
         :param t2s: （默认不使用）繁体字转中文
         :param expression_len: 假设表情的表情长度范围，不在范围内的文本认为不是表情，不加以清洗，如[加上特别番外荞麦花开时共五册]。设置为None则没有限制
         :param linesep2space: （默认不使用）把换行符转换成空格
+        :param custom_regex: （默认None）一个正则表达式或一个列表的正则表达式，会优先根据这些表达式将对应内容替换为空
         :return: 清洗后的文本
         '''
         # unicode不可见字符
@@ -761,6 +762,12 @@ class HarvestText(EntNetworkMixin, EntRetrieveMixin, ParsingMixin, SentimentMixi
         # 反向的矛盾设置
         if norm_url and to_url:
             raise Exception("norm_url和to_url是矛盾的设置")
+        if custom_regex is not None:
+            if type(custom_regex) == str:
+                custom_regex = [custom_regex]
+            for pattern in custom_regex:
+                text = re.sub(pattern, "", text)
+        
         if norm_html:
             text = html.unescape(text)
         if to_url:
